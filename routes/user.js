@@ -1,49 +1,20 @@
-const mongoose  = require("mongoose");
-const validator = require("validator");
+const express = require("express");
+const passport = require("passport");
+const middleware = require("../middleware/index");
+const userController = require("../controllers/userController");
 
-const userSchema = new mongoose.Schema({
-    username: {
-        type: String,
-        unique: true,
-    },
-    email: {
-        type: String,
-        required: true,
-        minlength: 1,
-        unique: true,
-        trim: true,
-        validate: {
-            validator: value=>validator.isEmail(value),
-            message: "Invalid Email Address",
-        },
-    },
-    password: {
-        type: String,
-        minlength: 6,
-        required: true,
-    },
-    channels: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Channel",
-    }],
-    profile_picture: {
-        type: String,
-        default: "/img/placeholder.png",
-    },
-    friends: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-        },
-    ],
-    created_at: {
-        type: Date,
-        default: Date.now,
-    },
-    online: {
-        type: Boolean,
-        default: false,
-    },
-});
+const router = express.Router();
 
-module.exports = mongoose.model("User", userSchema);
+router.get("/login", userController.renderLoginPage);
+router.post("/login", passport.authenticate("local-login", { failureRedirect: "/users/register" }), userController.loginUser);
+
+router.get("/register", userController.renderRegisterPage);
+router.post("/register", passport.authenticate("local-signup", { failureRedirect: "/users/register", failureFlash: true }), userController.registerUser);
+
+router.get("/logout", middleware.isLogedIn, userController.logoutUser);
+
+router.get("/@me", middleware.isLogedIn, userController.getUserProfile);
+router.get("/:id", middleware.isLogedIn, userController.getExternalUserProfile);
+router.patch("/@me/update", middleware.isLogedIn, userController.updateUserProfile);
+
+module.exports = router;
